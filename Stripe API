@@ -1,0 +1,68 @@
+Map<String, dynamic>? paymentIntentData;
+  Future<void> makepayment(String amount, String currency) async {
+    try {
+      paymentIntentData = await createPaymentIntent(amount, currency);
+      if (paymentIntentData != null) {
+        await Stripe.instance.initPaymentSheet(
+            paymentSheetParameters: SetupPaymentSheetParameters(
+          //applePay: false,
+          googlePay: PaymentSheetGooglePay(merchantCountryCode: 'DEU'),
+          merchantDisplayName: "Prospects",
+          customerId: paymentIntentData!['customer'],
+          paymentIntentClientSecret: paymentIntentData!['client_secret'],
+          customerEphemeralKeySecret: paymentIntentData!['ephemeralkey'],
+        ));
+        displayPaymentSheet();
+      }
+    } catch (e, s) {
+      print("EXCEPTION ===$e$s");
+      EasyLoading.showError("EXCEPTION ===$e$s");
+    }
+  }
+
+  createPaymentIntent(String amount, String currency) async {
+    try {
+      Map<String, dynamic> body = {
+        'amount': calculateAmount(amount),
+        'currency': currency,
+        'payment_method_types[]': 'card',
+        // 'customer': 'mouhib',
+        // 'id_client': user!.uid
+      };
+      var response = await http.post(
+          Uri.parse("https://api.stripe.com/v1/payment_intents"),
+          body: body,
+          headers: {
+            'Authorization':
+                "Your Secret Key From Stripe API KEYS ",
+            'Content-Type': 'application/x-www-form-urlencoded',
+          });
+      return jsonDecode(response.body);
+    } catch (err) {
+      print('err => $err');
+      EasyLoading.showError('err => $err');
+    }
+    // createPaymentIntent(amount, currency);
+  }
+
+  calculateAmount(String amount) {
+    final a = (int.parse(amount)) * 100;
+    return a.toString();
+    // calculateAmount(amount);
+  }
+
+  void displayPaymentSheet() async {
+    // displayPaymentSheet();
+    try {
+      await Stripe.instance.presentPaymentSheet();
+      //* ==> widget from pub.dev (not necessary) <=== *\\
+      AnimatedSnackBar.rectangle(
+        mobileSnackBarPosition: MobileSnackBarPosition.top,
+        'Pay sucessful',
+        'So , You Can Contact ${widget.T_name}',
+        type: AnimatedSnackBarType.success,
+        brightness: Brightness.light,
+      ).show(
+        context,
+      ); //* end of the widget *\\
+....
